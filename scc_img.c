@@ -37,6 +37,7 @@
 
 #include "scc_fd.h"
 #include "scc_img.h"
+#include "gifdec.h"
 
 // create a new empty image of the given size
 scc_img_t* scc_img_new(int w,int h,int ncol) {
@@ -375,6 +376,39 @@ static scc_img_t* scc_img_parse_bmp(scc_fd_t* fd) {
   return img;
 }
 
+static scc_img_t* scc_img_parse_gif(scc_fd_t* fd) {
+  scc_img_t* img;
+  gd_GIF *gif;
+  int ret;
+
+  gif = gd_open_gif(fd->filename);
+
+  if (!gif) {
+    printf("Error while reading GIF file %s\n",fd->filename);
+    return NULL;
+  }
+
+  img = scc_img_new(gif->width,gif->height,gif->palette->size);
+
+  ret = gd_get_frame(gif);
+  if (ret == -1) {
+    printf("Error while extracting a frame from %s\n",fd->filename);
+    return NULL;
+  }
+
+  gd_copy_frame_data(gif,img->data);
+
+  memcpy(img->pal,gif->palette->colors,gif->palette->size);
+  if (gif->gce.transparency)
+    img->trans = gif->gce.tindex;
+  else
+    img->trans = img->ncol-1;
+
+  gd_close_gif(gif);
+
+  return img;
+}
+
 // later this func should probably go through the various
 // decoder to find the right one.
 scc_img_t* scc_img_open(char* path) {
@@ -387,7 +421,13 @@ scc_img_t* scc_img_open(char* path) {
     return NULL;
   }
 
+  // First, let's try if BMP
   img = scc_img_parse_bmp(fd);
+
+  if (img == NULL) {
+    // Not a proper BMP, let's try GIF
+    img = scc_img_parse_gif(fd);
+  }
 
   scc_fd_close(fd);
 
