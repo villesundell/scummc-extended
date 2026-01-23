@@ -1,3 +1,7 @@
+/**
+ * "gifdec" originally released in the public domain by Marcel "lecram"
+ * Rodrigues: https://github.com/lecram/gifdec
+ */
 #include "gifdec.h"
 
 #include <stdio.h>
@@ -507,6 +511,12 @@ gd_render_frame(gd_GIF *gif, uint8_t *buffer)
 {
     memcpy(buffer, gif->canvas, gif->width * gif->height * 3);
     render_frame_rect(gif, buffer);
+}
+
+void
+gd_copy_frame_data(gd_GIF *gif, uint8_t *buffer)
+{
+    memcpy(buffer, gif->frame, gif->width * gif->height);
 }
 
 int
