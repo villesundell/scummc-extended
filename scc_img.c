@@ -376,10 +376,10 @@ static scc_img_t* scc_img_parse_bmp(scc_fd_t* fd) {
   return img;
 }
 
-static scc_img_t* scc_img_parse_gif(scc_fd_t* fd) {
+static scc_img_t* scc_img_parse_gif(scc_fd_t* fd, int frame) {
   scc_img_t* img;
   gd_GIF *gif;
-  int ret;
+  int ret, i = 0;
 
   gif = gd_open_gif(fd->filename);
 
@@ -390,11 +390,14 @@ static scc_img_t* scc_img_parse_gif(scc_fd_t* fd) {
 
   img = scc_img_new(gif->width,gif->height,gif->palette->size);
 
-  ret = gd_get_frame(gif);
-  if (ret == -1) {
-    printf("Error while extracting a frame from %s\n",fd->filename);
-    return NULL;
-  }
+  do {
+    ret = gd_get_frame(gif);
+    if (ret < 1) {
+      printf("Error while extracting a frame from %s\n",fd->filename);
+      return NULL;
+    }
+    i++;
+  } while (frame > i);
 
   gd_copy_frame_data(gif,img->data);
 
@@ -426,7 +429,7 @@ scc_img_t* scc_img_open(char* path) {
 
   if (img == NULL) {
     // Not a proper BMP, let's try GIF
-    img = scc_img_parse_gif(fd);
+    img = scc_img_parse_gif(fd, 0);
   }
 
   scc_fd_close(fd);
