@@ -169,7 +169,7 @@
   static char* header_name = NULL;
   static char* symbol_prefix = NULL;
 
-  static int cost_pic_load(cost_pic_t* pic,char* file);
+  static int cost_pic_load(cost_pic_t* pic,char* file,int frame);
 
   static cost_pic_t* find_pic(char* name) {
     cost_pic_t* p;
@@ -272,6 +272,9 @@ dec: picturedec
 
 picture: picturedec '=' '{' picparamlist '}'
 {
+  size_t nlen = strlen(cur_pic->name)+16;
+  char name[nlen];
+
   // check that the pic have an image
   if(!cur_pic->path)
     COST_ABORT(@1,"Picture %s has no path defined.\n",
@@ -279,8 +282,7 @@ picture: picturedec '=' '{' picparamlist '}'
   
   if(cur_pic->is_glob) {
     glob_t gl;
-    int n,nlen = strlen(cur_pic->name);
-    char name[nlen+16];
+    int n;
     cost_pic_t* p;
     
     // expand the glob
@@ -312,7 +314,7 @@ picture: picturedec '=' '{' picparamlist '}'
       }
       // load it up
       p->path = strdup(gl.gl_pathv[n]);
-      if(!cost_pic_load(p,p->path))
+      if(!cost_pic_load(p,p->path,0))
         COST_ABORT(@1,"Failed to load %s.\n",p->path);
       // copy the position, etc
       p->rel_x = cur_pic->rel_x;
@@ -332,8 +334,35 @@ picture: picturedec '=' '{' picparamlist '}'
     globfree(&gl);
   } else {  
     // load it up
-    if(!cost_pic_load(cur_pic,cur_pic->path))
-      COST_ABORT(@1,"Failed to load %s.\n",cur_pic->path);
+    int i = 0;
+    cost_pic_t* p;
+    char *basename = cur_pic->name;
+    char *basepath = cur_pic->path;
+
+    if(!cost_pic_load(cur_pic,basepath,i))
+      COST_ABORT(@1,"Failed to load %s.\n",basepath);
+
+    //Do we have multiple frames?
+    do {
+      snprintf(name,nlen,"%s%02d",basename,i);
+      p = calloc(1,sizeof(cost_pic_t));
+      p->name = strdup(name);
+      p->path = basepath;
+      if(!cost_pic_load(p,basepath,i)) {
+        free(p);
+        break;
+      }
+
+      // copy the position, etc
+      p->rel_x = cur_pic->rel_x;
+      p->rel_y = cur_pic->rel_y;
+      p->move_x = cur_pic->move_x;
+      p->move_y = cur_pic->move_y;
+
+      p->next = pic_list;
+      pic_list = p;
+      i++;
+    } while (1);
   }
 
   cur_pic = NULL;
@@ -730,9 +759,11 @@ location: /* empty */
 %%
 
 // load an image and encode it with the strange vertical RLE
-static int cost_pic_load(cost_pic_t* pic,char* file) {  
-  scc_img_t* img = scc_img_open(file);
+static int cost_pic_load(cost_pic_t* pic,char* file,int frame) {
+  scc_img_t* img;
   int color,rep,shr,max_rep,x,y;
+
+  img = scc_img_open_frame(file,frame);
 
   if(!img) return 0;
 
