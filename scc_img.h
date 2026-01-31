@@ -46,5 +46,8 @@ int scc_img_write_bmp(scc_img_t* img,scc_fd_t* fd);
 /// Save an image as BMP at the given path
 int scc_img_save_bmp(scc_img_t* img,char* path);
 
-/// Open an image. Only BMP is supported atm.
+/// Open a BMP or GIF image (one frame)
 scc_img_t* scc_img_open(char* path);
+
+/// Open a GIF (0 frames or more)
+scc_img_t* scc_img_open_frame(char* path,int frame);

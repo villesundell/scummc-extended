@@ -414,9 +414,9 @@ static scc_img_t* scc_img_parse_gif(scc_fd_t* fd, int frame) {
 
 // later this func should probably go through the various
 // decoder to find the right one.
-scc_img_t* scc_img_open(char* path) {
+scc_img_t* scc_img_open_frame(char* path,int frame) {
   scc_fd_t* fd;
-  scc_img_t* img;
+  scc_img_t* img = NULL;
 
   fd = new_scc_fd(path,O_RDONLY,0);
   if(!fd) {
@@ -424,17 +424,22 @@ scc_img_t* scc_img_open(char* path) {
     return NULL;
   }
 
-  // First, let's try if BMP
-  img = scc_img_parse_bmp(fd);
+  // First, let's try if BMP if frame is 0, as BMPs do not have frames
+  if (frame == 0)
+    img = scc_img_parse_bmp(fd);
 
   if (img == NULL) {
-    // Not a proper BMP, let's try GIF
-    img = scc_img_parse_gif(fd, 0);
+    // We didn't get a BMP. Let's try GIF then
+    img = scc_img_parse_gif(fd,frame);
   }
 
   scc_fd_close(fd);
 
   return img;
+}
+
+scc_img_t* scc_img_open(char* path) {
+  return scc_img_open_frame(path,0);
 }
 
 //#define SCC_IMG_TEST 1
