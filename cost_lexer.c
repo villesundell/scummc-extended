@@ -47,6 +47,7 @@ static scc_keyword_t cost_keywords[] = {
     { "SOUND",      SOUND,      -1 },
     { "SOUTH",      INTEGER,     2 },
     { "WEST",       INTEGER,     0 },
+    { "all",        ALL,        -1 },
     { "anim",       ANIM,       -1 },
     { "flags",      FLAGS,      -1 },
     { "glob",       GLOB,       -1 },
