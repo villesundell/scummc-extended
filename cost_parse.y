@@ -228,6 +228,7 @@
 %token MOVE
 %token SHOW HIDE NOP COUNT SOUND
 %token ERROR
+%token ALL
 
 %type <integer> number location
 %type <intpair> numberpair
@@ -595,6 +596,42 @@ cmdlistitem: SYM
   $$->type = COST_CMD_DISPLAY;
   $$->arg[0].pic = p;
   p->ref++;
+}
+| ALL '(' SYM ')'
+{
+  char name[256];
+  int i = 0;
+  cost_pic_t *p;
+  cost_cmd_t *head = NULL, *tail = NULL;
+
+  while (1) {
+    // Generate the name using the same format as picture loading
+    sprintf(name,"%s%02d",$3,i++);
+    p = find_pic(name);
+
+    if (!p) break; // Stop when no more frames are found
+
+    // Create a new command for this frame
+    cost_cmd_t *new_cmd = calloc(1,sizeof(cost_cmd_t));
+    new_cmd->type = COST_CMD_DISPLAY;
+    new_cmd->arg[0].pic = p;
+    p->ref++;
+
+    // Link it to the chain
+    if (!head) {
+      head = new_cmd;
+    } else {
+      tail->next = new_cmd;
+    }
+    tail = new_cmd;
+  }
+
+  if (!head) {
+    COST_ABORT(@3, "Macro all(%s) expanded to 0 frames. Ensure frames are defined.\n", $3);
+  }
+
+  free($3);
+  $$ = head;
 }
 | SHOW
 {
