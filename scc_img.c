@@ -384,7 +384,7 @@ static scc_img_t* scc_img_parse_gif(scc_fd_t* fd, int frame) {
   gif = gd_open_gif(fd->filename);
 
   if (!gif) {
-    printf("Error while reading GIF file %s\n",fd->filename);
+    // We print nothing to avoid clutter
     return NULL;
   }
 
@@ -392,7 +392,9 @@ static scc_img_t* scc_img_parse_gif(scc_fd_t* fd, int frame) {
 
   do {
     ret = gd_get_frame(gif);
-    if (ret < 1) {
+    if (ret == 0) {
+      return NULL;
+    } else if (ret < 0) {
       printf("Error while extracting a frame from %s\n",fd->filename);
       return NULL;
     }
